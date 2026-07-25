@@ -34,7 +34,7 @@ TWIST/
 ## Install
 
 ```bash
-git clone <repo-url> && cd <repo>
+git clone https://github.com/Avi130805/twist-bench && cd twist-bench
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 ```
