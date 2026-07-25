@@ -1,0 +1,13 @@
+# Run artefacts — regenerated every run, and they get large fast.
+shots/*.png
+shots/*.log
+runs/
+videos/
+briefs/
+
+# Generated prompts carry absolute paths for the machine that made them.
+task_*.md
+
+__pycache__/
+*.pyc
+.DS_Store

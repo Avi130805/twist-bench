@@ -1,0 +1,11 @@
+# Core — needed to run the simulation.
+numpy>=1.24
+pygame>=2.5
+PyOpenGL>=3.1
+
+# Optional — only for tools/score_run.py, which uses it to measure how many
+# moves a state is from solved. Everything else works without it.
+kociemba>=1.2.1
+
+# Also optional: ffmpeg, for --record. Not a Python package — install it with
+# your system package manager (brew install ffmpeg / apt install ffmpeg).
