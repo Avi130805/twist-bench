@@ -9,7 +9,7 @@ mirror-blocks engine. The app and the agent bridge only ever talk to the
 
 import random
 
-from . import keymap, sizing
+from . import keymap, scramble, sizing
 from .mirror_render import MirrorAnimation, draw_mirror_cube
 from .mirror_state import MirrorCubeState, get_random_scramble
 
@@ -19,14 +19,10 @@ from cube_renderer import Animation, build_color_map, draw_cube  # noqa: E402
 from cube_state import CubeState  # noqa: E402
 from utils import invert_move, parse_move  # noqa: E402
 
-DEFAULT_SCRAMBLE = {
-    "2x2": 15,
-    "3x3": 25,
-    "4x4": 40,
-    "5x5": 60,
-    "6x6": 80,
-    "mirror": 25,
-}
+# One default for every cube. 300 well-formed moves is far past the point where
+# the state distribution stops changing, so the number is about being safely
+# randomised, not about tuning difficulty — see engine/scramble.py.
+DEFAULT_SCRAMBLE_LENGTH = scramble.DEFAULT_LENGTH
 
 
 class NxNCube:
@@ -91,12 +87,9 @@ class NxNCube:
 
     def scramble(self, count=None, rng=None):
         rng = rng or random
-        count = count or DEFAULT_SCRAMBLE[self.cube_id]
+        count = count or DEFAULT_SCRAMBLE_LENGTH
         self.reset()
-        moves = []
-        base = self.legal_moves()
-        for _ in range(count):
-            moves.append(rng.choice(base) + rng.choice(["", "'", "2"]))
+        moves = scramble.random_scramble(self.legal_moves(), rng, count)
         self.activate()
         for m in moves:
             self.cs.apply_move(m)
@@ -194,19 +187,9 @@ class MirrorCube:
         self.history.clear()
 
     def scramble(self, count=None, rng=None):
-        count = count or DEFAULT_SCRAMBLE["mirror"]
+        count = count or DEFAULT_SCRAMBLE_LENGTH
         self.reset()
-        if rng is None:
-            moves = get_random_scramble(count)
-        else:
-            faces = ["U", "D", "R", "L", "F", "B"]
-            moves, last = [], None
-            for _ in range(count):
-                face = rng.choice(faces)
-                while face == last:
-                    face = rng.choice(faces)
-                moves.append(face + rng.choice(["", "'", "2"]))
-                last = face
+        moves = scramble.random_scramble(self.legal_moves(), rng or random, count)
         for m in moves:
             self.state.apply_move(m)
         return moves

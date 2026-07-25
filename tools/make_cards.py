@@ -84,13 +84,13 @@ def card_result(s):
     body, _ = rows([
         ("model", "claude-opus-5", FG, "agent restricted to Bash + Read"),
         ("puzzle", "3&#215;3&#215;3", FG, ""),
-        ("scramble", f"depth {s['depth']}  seed {s['seed']}", FG,
-         f"{s['optimal']} moves optimal (Kociemba)"),
+        ("scramble", f"{s['depth']} moves  seed {s['seed']}", FG,
+         f"{s['optimal']} moves from solved (Kociemba)"),
         ("input", "PNG screenshots only", FG, "no text state exposed"),
         ("output", "keystrokes", FG, "same path a human keyboard takes"),
         ("", "", FG, ""),
         ("result", "solved = true", GREEN, "6/6 faces uniform"),
-        ("moves", f"{s['moves']}", AMBER, f"{s['ratio']:.1f}&#215; optimal, budget {s['budget']}"),
+        ("moves", f"{s['moves']}", AMBER, f"{s['ratio']:.1f}&#215; the reference solution, budget {s['budget']}"),
         ("screenshots", f"{s['shots']}", FG, f"{s['shot_calls']} calls, all opened"),
         ("wall clock", f"{s['wall_s']} s", FG, f"{s['wall_s']/60:.1f} min"),
         ("answer-key reads", "0", GREEN, "by the solver; logged server-side"),
@@ -190,12 +190,12 @@ def card_status(s):
         y += 56
     return head() + title(
         "COVERAGE",
-        "6 puzzles &#215; scramble depth &#183; 1 of 6 measured so far") + f"""
+        "1 of 6 measured so far") + f"""
 <line x1="72" y1="164" x2="{W-72}" y2="164" stroke="{RULE}" stroke-width="2"/>
 {''.join(out)}
 <line x1="72" y1="{y-24}" x2="{W-72}" y2="{y-24}" stroke="{RULE}" stroke-width="2"/>
 <text x="72" y="{y+40}" font-family="{MONO}" font-size="25" fill="{FG}">
-scramble depth is the difficulty dial &#8212; sweep it to find where a model breaks</text>
+scramble length is not a difficulty dial &#8212; a 3x3 saturates by ~25 moves</text>
 <text x="72" y="{y+82}" font-family="{MONO}" font-size="25" fill="{FG}">
 git clone github.com/Avi130805/twist-bench</text>
 <text x="72" y="{y+124}" font-family="{MONO}" font-size="21" fill="{FAINT}">

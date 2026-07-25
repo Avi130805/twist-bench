@@ -289,22 +289,33 @@ than once (the one read being the scorer itself).
 solution through the real keypress path — proving the facelet mapping and the
 move engine agree with an independent implementation.
 
-## Suggested experimental design
+## Scramble length is not a difficulty dial
 
-Do not run everything at scramble depth 20 — you will get a column of zeros.
-Sweep the **scramble depth** instead and find where each model breaks:
+Worth stating plainly, because it is tempting to assume otherwise. A 3x3 state is
+at most 20 moves from solved, and the distance of a random state saturates by
+around the 25-move mark. Measured with `tools/measure_saturation.py`
+(15 scrambles per length, distance via Kociemba):
 
-```bash
-for d in 1 2 3 5 8 12 20; do
-  python3 agent_cli.py scramble --moves $d --seed 1000
-  # ... run the model, then score ...
-done
-```
+| scramble moves | 1 | 5 | 8 | 12 | 20 | 30 | 100 | 300 |
+|---|---|---|---|---|---|---|---|---|
+| mean distance | 1.0 | 6.1 | 10.0 | 17.7 | 20.9 | 20.7 | 20.7 | 20.8 |
 
-A curve of "solve rate vs scramble depth", one line per model, is both a more
-honest measurement and a far more interesting chart than a pass/fail table. The
-cube-size axis (2x2 → 6x6) and the mirror cube give you two more difficulty
-dimensions on top.
+Past ~25 moves every scramble is the same task. A scrambled cube is a scrambled
+cube. So **scrambles default to 300 moves** — the number is there to make
+"randomised" unambiguous, not to tune anything.
+
+Short scrambles (1–12) do separate models, but they test something different:
+short-horizon search rather than method recall. Useful as a separate regime, not
+as a difficulty axis continuous with the deep case.
+
+The axes that do vary difficulty are **cube size** (2x2 → 6x6, which changes the
+move set and introduces parity cases) and the **mirror cube**, which removes
+colour entirely.
+
+Scrambles are generated with no cancellation — never the same layer twice in a
+row, never three consecutive moves on one axis — so a scramble of length N really
+is N moves. The naive uniform-random generator this replaced produced sequences
+like `R' R` that silently cancel.
 
 ## Using it as a benchmark
 

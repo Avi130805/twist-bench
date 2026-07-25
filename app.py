@@ -469,7 +469,8 @@ class TwistApp:
             "busy": bool(self.cube.busy),
             "pending_keys": len(self.key_queue),
             "task_armed": self.task_armed,
-            "task_depth": self.task_depth,
+            "task_moves": self.task_depth,
+            "task_depth": self.task_depth,  # deprecated alias
             "camera": {
                 "pitch": round(self.target_pitch, 2),
                 "yaw": round(self.target_yaw, 2),

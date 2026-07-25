@@ -9,9 +9,9 @@ measures nothing. This script is the missing step: it opens the window, selects
 the cube, scrambles it to a chosen depth from a chosen seed, and prints the task
 record you need in order to score and reproduce the run.
 
-    python tools/new_task.py                                  # 3x3, depth 20
-    python tools/new_task.py --cube 4x4 --depth 12 --seed 7
-    python tools/new_task.py --depth 3 --pace 0.3 --record videos/run.mp4
+    python tools/new_task.py                                  # 3x3, 300 moves
+    python tools/new_task.py --cube 4x4 --seed 7
+    python tools/new_task.py --moves 3 --pace 0.3 --record videos/run.mp4
     python tools/new_task.py --print-prompt                   # also emit the prompt
 """
 
@@ -33,8 +33,11 @@ from engine.launcher import port_is_live, resolve_python  # noqa: E402
 def main():
     ap = argparse.ArgumentParser(description="Arm one TWIST task")
     ap.add_argument("--cube", default="3x3", choices=list(keymap.CUBE_IDS))
-    ap.add_argument("--depth", type=int, default=20,
-                    help="scramble depth — the difficulty dial. Sweep it.")
+    ap.add_argument("--moves", "--depth", dest="moves", type=int, default=None,
+                    help="scramble length (default 300). NOT a difficulty dial: a "
+                         "3x3 saturates near 21 moves-from-solved by about move 25, "
+                         "so anything past that is the same task. See "
+                         "tools/measure_saturation.py")
     ap.add_argument("--seed", type=int, default=None,
                     help="scramble seed; same seed + same cube = same task")
     ap.add_argument("--pace", type=float, default=None,
@@ -80,17 +83,17 @@ def main():
         cb.select(args.cube)
         if args.pace is not None and already_up:
             cb.pace(args.pace)
-        result = cb.scramble(moves=args.depth, seed=args.seed)
+        result = cb.scramble(moves=args.moves, seed=args.seed)
         state = cb.status()
 
     if state["solved"]:
         print("ERROR: the cube came out solved — the scramble did nothing.\n"
-              "       Check --depth is greater than zero.", file=sys.stderr)
+              "       Check --moves is greater than zero.", file=sys.stderr)
         return 1
 
     task = {
         "cube": args.cube,
-        "scramble_depth": args.depth,
+        "scramble_moves": args.moves,
         "seed": args.seed,
         "scramble": result["scramble"],
         "task_armed": state["task_armed"],
