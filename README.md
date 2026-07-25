@@ -16,19 +16,29 @@ The model's only inputs are screenshots; its only outputs are keystrokes.
 Nothing here touches the network beyond `127.0.0.1`, and no asset is fetched at
 runtime.
 
+**[Results so far](RESULTS.md)** — one run: `claude-opus-5` solved a 20-move 3x3
+scramble in 83 moves and 44 minutes, of which 99.1% was thinking. Five of the six
+puzzles are still untested.
+
 ```
 TWIST/
-  app.py             the simulation (pygame + PyOpenGL window)
-  agent_bridge.py    loopback JSON-lines server the app polls each frame
-  agent_client.py    Python client -> import this in a harness
-  agent_cli.py       shell client   -> drop this into a tool-using agent loop
-  example_agent.py   end-to-end smoke test of the whole channel
-  KEYMAP.md          full key guide (generated from engine/keymap.py)
-  PROMPT.md          how to prompt the model being benchmarked
-  engine/            cube wrappers, key tables, mirror cube, PNG writer, launcher
-  shots/             screenshots land here
-  tools/gen_keymap.py  regenerates KEYMAP.md
-  tools/gen_prompt.py  emits the benchmark prompt for a given cube
+  app.py               the simulation (pygame + PyOpenGL window)
+  agent_bridge.py      loopback JSON-lines server the app polls each frame
+  agent_client.py      Python client -> import this in a harness
+  agent_cli.py         shell client  -> drop this into a tool-using agent loop
+  example_agent.py     end-to-end smoke test of the whole channel
+  engine/              cube wrappers, key tables, mirror cube, logging, recording
+  engine/vendor/       the cube engine, vendored unmodified
+  tools/new_task.py    arm one graded task  <- start here
+  tools/gen_prompt.py  emit the prompt for a cube (brief / runner / standalone)
+  tools/score_run.py   score a finished run; --selftest checks against Kociemba
+  tools/gen_keymap.py  regenerate KEYMAP.md
+  tools/make_cards.py  render data cards from a run's measured numbers
+  .claude/agents/      restricted solver agent definition (Claude Code)
+  KEYMAP.md            full key guide (generated from engine/keymap.py)
+  PROMPT.md            how to prompt the model being benchmarked
+  RESULTS.md           measured runs
+  shots/ runs/ videos/ screenshots, run logs, recordings (gitignored)
 ```
 
 ## Install
@@ -56,12 +66,12 @@ python3 agent_cli.py ensure --cube 4x4 --pace 0.2
 simulation first if the port is dead. The window is started detached, so it
 survives the agent's shell exiting, and if it ever dies mid-run the client
 relaunches and retries once. `agent_cli.py` needs only the stdlib, so it works
-under any python; it resolves the Rubix venv itself to run the app.
+under any python; it finds the repo's own `.venv` to run the app.
 
 To open it manually (or to just play with it yourself):
 
 ```bash
-../Rubix/venv/bin/python app.py
+python app.py
 ```
 
 Flags: `--cube 4x4`, `--seed 42` (reproducible scrambles), `--pace 0.25` (pause
@@ -71,11 +81,12 @@ between agent moves so a human can follow along), `--port 8181`,
 Smoke-test the whole channel:
 
 ```bash
-../Rubix/venv/bin/python example_agent.py
+python example_agent.py
 ```
 
 `agent_cli.py` needs only the stdlib, so `python3 agent_cli.py ...` works with any
-interpreter; the app itself needs the Rubix venv, which the launcher resolves.
+interpreter; the app itself needs the dependencies above, which the launcher
+locates in `.venv/` (or falls back to the interpreter running it).
 
 ## Watching the agent work
 
@@ -96,27 +107,27 @@ If the agent bursts through moves faster than you can follow, start the app with
 `--pace 0.25` (or `ensure --pace 0.25`) to insert a pause between agent moves.
 It has no effect on the cube, only on playback speed.
 
-## What is stitched together from where
+## How it is put together
 
-Nothing about the cube mechanics is new — this is existing, already-working code
-wired into one harness.
+Little about the cube mechanics is new. The move engine and renderer come from an
+earlier 6x6 cube project of mine and are vendored verbatim in `engine/vendor/`;
+the mirror-cube geometry is vendored the same way in `engine/mirror_state.py`.
+Everything in `engine/` outside those files is the wrapper that turns them into a
+benchmark: size retargeting, the two cube families behind one interface, the key
+tables, the agent channel, run logging and recording.
 
-| Piece | Source | What TWIST does with it |
-|---|---|---|
-| Move engine + state | `Rubix/cube_state.py` | retargeted from a fixed 6x6 to any N (see below) |
-| 3D rendering + layer animation | `Rubix/cube_renderer.py` | same, plus a light rig tuned for legibility |
-| Key layout `U D R L F B / T G V N H Y / 1..6` | `Rubix/main.py`, `cubeblender/decoy_3d.py` | kept verbatim, made the single source of truth |
-| Mirror cube geometry and moves | `cubeblender/mirror_state.py` | vendored unchanged into `engine/` |
-| Mirror cube drawing | `cubeblender/mirror_main.py` | reworked to share the animation easing |
+The vendored files are deliberately unmodified. See `engine/vendor/README.md` for
+why that matters.
 
 ### How 2x2..6x6 come out of a 6x6-only engine
 
-`Rubix/utils.py` hardcodes `CUBE_SIZE = 6`, but every function reads that
+`engine/vendor/utils.py` hardcodes `CUBE_SIZE = 6`, but every function reads that
 constant from its module globals at call time. `engine/sizing.activate(n)`
 re-binds the attribute on `utils`, `cube_state` and `cube_renderer` (plus the
 renderer's derived `N`/`OFF`), which retargets the whole engine at size `n`
 without forking it. One size is live at a time, which is all a single window
-needs. Verified: random scrambles round-trip to solved on all five sizes.
+needs. Verified: random scrambles round-trip to solved on all five sizes, and
+`tools/score_run.py --selftest` checks the 3x3 move engine against Kociemba.
 
 Slice depths per cube are `1 .. n//2` from each of the six faces. That covers
 every layer on even cubes, and on odd cubes the one uncovered middle slice
@@ -188,7 +199,7 @@ solution length. Scrambling resets it to zero.
 ## Recording a run
 
 ```bash
-../Rubix/venv/bin/python app.py --cube 3x3 --pace 0.3 --record videos/run.mp4
+python app.py --cube 3x3 --pace 0.3 --record videos/run.mp4
 ```
 
 The app pipes its own frames to ffmpeg at **two different rates**: fast while the
@@ -209,8 +220,8 @@ finalise the mp4 and the log.
 ## Scoring
 
 ```bash
-../Rubix/venv/bin/python tools/score_run.py            # scores the live cube
-../Rubix/venv/bin/python tools/score_run.py --selftest # verify against Kociemba
+python tools/score_run.py            # scores the live cube
+python tools/score_run.py --selftest # verify against Kociemba
 ```
 
 Pass/fail is a poor metric here — on a task this hard nearly everything scores
@@ -282,12 +293,16 @@ Keep `state` (and the `scramble` list) out of the model's context — those are 
 answer key. If a harness needs a hard wall, run the model against `agent_cli.py`
 with only the `press`, `look`, `shot`, `camera` and `status` subcommands exposed.
 
-## Notes on this machine's environment
+## Portability notes
 
-The venv's pygame was built without SDL_ttf and SDL_image, so `pygame.font` and
-PNG saving are both broken in it (this is why the original Rubix app runs with no
-text in its HUD). TWIST works around both without installing anything:
-`engine/textfont.py` renders text through the working `pygame._freetype`
-extension, and `engine/pngwrite.py` encodes screenshots with nothing but `zlib`.
-If pygame is ever rebuilt properly, both modules fall back to the standard path
-on their own.
+Some pygame builds ship without SDL_ttf or SDL_image. On those, `pygame.font`
+raises on import and `pygame.image.save` cannot write PNG — which would cost you
+the HUD and the screenshots, i.e. the entire visual channel. TWIST does not
+depend on either:
+
+- `engine/textfont.py` renders text through the `pygame._freetype` extension,
+  falling back to `pygame.font` automatically when that one is healthy.
+- `engine/pngwrite.py` encodes screenshots with nothing but `zlib`.
+
+So a stock `pip install pygame` is enough regardless of how it was built. This
+was found the hard way on the development machine, where both were missing.

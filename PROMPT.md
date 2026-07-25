@@ -101,10 +101,16 @@ capabilities:
 - run `agent_cli.py` (and nothing else)
 - read the PNG files that come back
 
-No `Write`, no `Edit`, no reading source files, no package installs. A restricted
-agent definition is included at `.claude/agents/cube-solver.md` — `tools: Bash,
-Read` plus a system prompt that states the rule — but a shell is a shell, so treat
-it as a fence rather than a wall and verify afterwards.
+No `Write`, no `Edit`, no reading source files, no package installs.
+
+If you drive this with Claude Code, `.claude/agents/cube-solver.md` in this repo
+is a ready-made restricted agent: `tools: Bash, Read` plus a system prompt that
+states the rules. It is what produced the run in [RESULTS.md](RESULTS.md). Note
+that Claude Code registers agent definitions at session start, so you need to
+restart it after cloning before the agent type appears.
+
+A shell is still a shell, so treat any of this as a fence rather than a wall and
+verify afterwards.
 
 ### Detecting it afterwards
 
