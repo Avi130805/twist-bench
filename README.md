@@ -1,12 +1,56 @@
 # TWIST
 
-**T**wisty-puzzle **W**orld-state **I**nference & **S**equential **T**urning —
-a benchmark for one question:
+**T**wisty-puzzle **W**orld-state **I**nference & **S**equential **T**urning
 
-> Can a model solve a Rubik's cube it can only *look* at?
+A benchmark for closed-loop visual reasoning: can a model build an accurate
+symbolic world-model from its own observations, keep it correct while acting on
+it, and notice when it has gone wrong?
+
+The cube is the substrate, not the point. It was chosen because the ground truth
+is exact to the sticker, the difficulty is a continuous dial, and a wrong belief
+about the world produces a plan that is internally valid and completely wrong.
 
 Not a text puzzle. A live 3D cube. The model gets screenshots and sends
 keystrokes, and nothing else passes between them.
+
+## What this measures
+
+Perception and planning are deliberately **entangled**. Most benchmarks decouple
+them — hand the model clean state and test planning, or hand it a static image
+and test recognition. Here a single misread sticker propagates into a confident,
+coherent, wrong solution, so a model has to be good at all of the following at
+once:
+
+| Capability | How the run measures it |
+|---|---|
+| Structured visual state extraction | binding ~54 discrete symbols to specific cells on specific faces, from a 3D render |
+| Reference-frame disambiguation | given one face, which edge is "up" and which neighbour does row 1 border |
+| Forward simulation | predicting what a move does to named stickers *before* pressing |
+| Closed-loop error detection | whether it verifies its prediction, and whether it recovers when it misses |
+| Action grounding | intent to keystroke, through an interface it does not control |
+| Spec adherence under temptation | it must not write a solver, which is the obvious engineering move |
+| Calibration | ground truth is exact, so an inflated success claim is directly detectable |
+
+Run 001 produced numbers on several of these. The model abandoned the isometric
+views after a single look and worked from flat face shots for the rest of the
+solve — it could discriminate the colours fine, but not assign foreshortened
+stickers to grid cells. It spent 11 minutes on one move deriving an algorithm's
+permutation by hand. It re-derived the whole board from fresh screenshots after
+every algorithm rather than carrying a remembered state forward, and predicted
+sticker changes before each press with no mismatches. See [RESULTS.md](RESULTS.md).
+
+### What it does not measure
+
+Cube algorithms are thoroughly represented in training data, so a model that has
+memorised a method gets much of the *planning* half by retrieval. The signal that
+is actually novel here is perception, frame disambiguation and verification — not
+"can it plan a cube solve".
+
+The **mirror cube is the control for this**: identical mechanism, identical
+algorithms, but every piece is the same colour and a different size, so pieces
+must be identified by shape. A model that solves the 3x3 and fails the mirror
+cube has told you the 3x3 result leaned on memorised colour-based method. That
+gap is the measurement.
 
 Six cubes in one window — 2x2, 3x3, 4x4, 5x5, 6x6 and a 3x3 silver mirror cube —
 switchable with a button click. Every cube is driven by one keyboard layout, and
