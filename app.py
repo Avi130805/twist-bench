@@ -1091,7 +1091,8 @@ def build_parser():
     p.add_argument("--record-fps", type=float, default=24.0,
                    help="frames captured per second while the cube is moving")
     p.add_argument("--record-idle-fps", type=float, default=2.0,
-                   help="frames captured per second while the model is thinking")
+                   help="frames captured per second while the model is thinking; "
+                        "0 drops thinking entirely so the clip is moves only")
     p.add_argument("--log", default=None, metavar="PATH",
                    help="run log to append to (default: runs/<timestamp>_<cube>.jsonl)")
     p.add_argument("--no-log", action="store_true", help="do not record a run log")

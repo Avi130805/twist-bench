@@ -1,9 +1,9 @@
 """
 agent_client.py — Python client for driving the live TWIST simulation.
 
-    from agent_client import TWIST
+    from agent_client import Twist
 
-    with TWIST() as cb:
+    with Twist() as cb:
         cb.select("4x4")
         cb.scramble(seed=7)
         shots = cb.look()              # two isometric views -> PNG paths

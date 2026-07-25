@@ -85,10 +85,14 @@ def summarise(events) -> dict:
     thinks = [e for e in events if e["kind"] == "think"]
     shots = [e for e in events if e["kind"] == "screenshot"]
     cmds = [e for e in events if e["kind"] == "command"]
-    end = events[-1]
+    # Prefer the explicit run_end; a log from a still-running app has none, in
+    # which case the last move's solved flag is the best evidence available.
+    end = next((e for e in reversed(events) if e["kind"] == "run_end"), None)
+    solved = (end.get("solved") if end
+              else (moves[-1].get("solved", False) if moves else False))
 
     think_total = sum(float(e.get("seconds", 0.0)) for e in thinks)
-    wall = float(end.get("t_run", 0.0))
+    wall = float(events[-1].get("t_run", 0.0))
 
     return {
         "cube": next((e.get("cube") for e in events if e.get("cube")), None),
@@ -101,7 +105,7 @@ def summarise(events) -> dict:
         "commands": len(cmds),
         "longest_think": round(max((float(e.get("seconds", 0)) for e in thinks),
                                    default=0.0), 1),
-        "solved": bool(end.get("solved", False)),
+        "solved": bool(solved),
         "truth_reads": sum(1 for e in events if e["kind"] == "truth_read"),
         "answer_key_peeks": sum(1 for e in events
                                 if e["kind"] == "truth_read" and not e.get("by_grader")),

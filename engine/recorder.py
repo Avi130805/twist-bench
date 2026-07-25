@@ -24,7 +24,10 @@ class Recorder:
         self.height = height
         self.fps = fps
         self.active_interval = 1.0 / max(active_fps, 0.1)
-        self.idle_interval = 1.0 / max(idle_fps, 0.05)
+        # idle_fps == 0 means "drop thinking entirely" — the cut then contains
+        # only the moves, which is what you want for a shareable clip.
+        self.skip_idle = idle_fps <= 0
+        self.idle_interval = float("inf") if self.skip_idle else 1.0 / idle_fps
         self.log = log
         self.proc = None
         self.frames = 0
@@ -61,6 +64,9 @@ class Recorder:
     def due(self, now: float, idle: bool) -> bool:
         """Should this frame be captured? Idle frames are sampled far less often."""
         if self.proc is None:
+            return False
+        if idle and self.skip_idle:
+            self.dropped += 1
             return False
         if now < self._next_at:
             self.dropped += 1

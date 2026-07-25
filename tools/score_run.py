@@ -33,7 +33,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from agent_client import TWIST  # noqa: E402
+from agent_client import Twist  # noqa: E402
 from engine import runlog  # noqa: E402
 
 FACE_ORDER = ("U", "R", "F", "D", "L", "B")
@@ -55,6 +55,9 @@ def kociemba_string(facelets: dict) -> str:
     return "".join(out)
 
 
+SOLVED_STRING = "".join(f * 9 for f in FACE_ORDER)
+
+
 def distance(facelets: dict):
     """Optimal-ish solution length from this state, or None if unavailable."""
     try:
@@ -62,7 +65,17 @@ def distance(facelets: dict):
     except ImportError:
         return None, "kociemba not installed"
     try:
-        return len(kociemba.solve(kociemba_string(facelets)).split()), None
+        state = kociemba_string(facelets)
+    except ValueError as exc:
+        return None, str(exc)
+    # Handed an already-solved cube, kociemba returns a 13-move identity
+    # sequence rather than an empty one. Left unhandled that reports a solved
+    # cube as 13 moves from solved, which is exactly the sort of wrong number
+    # that ends up in a chart.
+    if state == SOLVED_STRING:
+        return 0, None
+    try:
+        return len(kociemba.solve(state).split()), None
     except Exception as exc:
         return None, str(exc)
 

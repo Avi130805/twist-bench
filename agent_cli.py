@@ -21,7 +21,7 @@ import argparse
 import json
 import sys
 
-from agent_client import DEFAULT_HOST, DEFAULT_PORT, TWIST, TwistError
+from agent_client import DEFAULT_HOST, DEFAULT_PORT, Twist, TwistError
 
 
 def build_parser():

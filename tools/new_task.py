@@ -41,6 +41,9 @@ def main():
                     help="minimum seconds between agent moves, for watchability")
     ap.add_argument("--record", default=None, metavar="OUT.mp4",
                     help="record this run (only applies if the window is not up yet)")
+    ap.add_argument("--record-idle-fps", type=float, default=None,
+                    help="frames per second captured while the model thinks; "
+                         "0 drops thinking so the clip is moves only")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8181)
     ap.add_argument("--print-prompt", action="store_true",
@@ -61,6 +64,8 @@ def main():
             cmd += ["--pace", str(args.pace)]
         if args.record:
             cmd += ["--record", args.record]
+            if args.record_idle_fps is not None:
+                cmd += ["--record-idle-fps", str(args.record_idle_fps)]
         log = open(ROOT / "shots" / "app.log", "ab", buffering=0)
         subprocess.Popen(cmd, cwd=str(ROOT), stdout=log, stderr=subprocess.STDOUT,
                          stdin=subprocess.DEVNULL, start_new_session=True)
